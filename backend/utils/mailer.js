@@ -1,180 +1,154 @@
-const nodemailer = require("nodemailer");
+const Brevo = require("@getbrevo/brevo");
 require("dotenv").config();
 const { generatePassPDF } = require("./generatePassPDF");
 
-// 📌 Setup transporter
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT),
-  secure: Number(process.env.SMTP_PORT) === 465,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-  tls: {
-    rejectUnauthorized: false
-  }
-});
+// Initialize Brevo client
+const brevoApi = new Brevo.TransactionalEmailsApi();
+brevoApi.setApiKey(
+  Brevo.TransactionalEmailsApiApiKeys.apiKey,
+  process.env.BREVO_API_KEY
+);
 
-// Verify connection on startup
-transporter.verify(function (error, success) {
-  if (error) {
-    console.log("❌ SMTP Connection error:", error);
-  } else {
-    console.log("✅ SMTP Server is ready to send emails");
+// 📩 Helper function to send email
+async function sendEmail({ to, subject, html, attachments }) {
+  const email = {
+    sender: { name: "NK Tech Union", email: process.env.FROM_EMAIL },
+    to: [{ email: to }],
+    subject,
+    htmlContent: html,
+  };
+
+  if (attachments?.length) {
+    email.attachment = attachments.map((a) => ({
+      name: a.filename,
+      content: a.content.toString("base64"),
+    }));
   }
-});
+
+  try {
+    const res = await brevoApi.sendTransacEmail(email);
+    console.log("✅ Email sent via Brevo:", res.messageId || res);
+  } catch (err) {
+    console.error("❌ Email send error:", err.response?.body || err);
+  }
+}
 
 /**
- * Send email to HOST with Approve/Reject buttons
+ * 📨 Send approval request to Host
  */
 const sendApprovalRequestToHost = async (hostEmail, visitor) => {
-  try {
-    const approveLink = `${process.env.HOST_DECISION_BASE_URL}/visitors/decision/${visitor.approvalToken}?status=approved`;
-    const rejectLink  = `${process.env.HOST_DECISION_BASE_URL}/visitors/decision/${visitor.approvalToken}?status=rejected`;
+  const approveLink = `${process.env.HOST_DECISION_BASE_URL}/visitors/decision/${visitor.approvalToken}?status=approved`;
+  const rejectLink = `${process.env.HOST_DECISION_BASE_URL}/visitors/decision/${visitor.approvalToken}?status=rejected`;
 
-    const visitDate = new Date(visitor.createdAt).toLocaleDateString();
-    const visitTime = new Date(visitor.createdAt).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+  const visitDate = new Date(visitor.createdAt).toLocaleDateString();
+  const visitTime = new Date(visitor.createdAt).toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
-    const html = `
-      <div style="font-family: Arial, sans-serif; padding: 20px;">
-        <h2>👤 New Visitor Request</h2>
-        <p><strong>${visitor.name}</strong> wants to meet you.</p>
+  // ✅ FULL visitor details email
+  const html = `
+    <div style="font-family:Arial;padding:20px;">
+      <h2>👤 New Visitor Request</h2>
+      <p><strong>${visitor.name}</strong> wants to meet you.</p>
 
-        <h3>Visitor Details:</h3>
-        <ul>
-          <li><strong>Visitor ID:</strong> ${visitor.visitorCode}</li>
-          <li><strong>Name:</strong> ${visitor.name}</li>
-          <li><strong>Email:</strong> ${visitor.email}</li>
-          <li><strong>Phone:</strong> ${visitor.mobile}</li>
-          <li><strong>Aadhar:</strong> ${visitor.aadhar || "N/A"}</li>
-          <li><strong>Organization:</strong> ${visitor.companyName || "N/A"}</li>
-          <li><strong>Visitor Type:</strong> ${visitor.personType || "N/A"}</li>
-          <li><strong>Purpose:</strong> ${visitor.purpose}</li>
-          <li><strong>To Meet:</strong> ${visitor.toMeet}</li>
-          <li><strong>Gate Number:</strong> ${visitor.gateNumber || "N/A"}</li>
-          <li><strong>Date:</strong> ${visitDate}</li>
-          <li><strong>Time:</strong> ${visitTime}</li>
-        </ul>
+      <h3>Visitor Details:</h3>
+      <ul>
+        <li><strong>Visitor ID:</strong> ${visitor.visitorCode}</li>
+        <li><strong>Name:</strong> ${visitor.name}</li>
+        <li><strong>Email:</strong> ${visitor.email}</li>
+        <li><strong>Phone:</strong> ${visitor.mobile}</li>
+        <li><strong>Aadhar:</strong> ${visitor.aadhar || "N/A"}</li>
+        <li><strong>Organization:</strong> ${visitor.companyName || "N/A"}</li>
+        <li><strong>Visitor Type:</strong> ${visitor.personType || "N/A"}</li>
+        <li><strong>Purpose:</strong> ${visitor.purpose || "N/A"}</li>
+        <li><strong>To Meet:</strong> ${visitor.toMeet}</li>
+        <li><strong>Gate Number:</strong> ${visitor.gateNumber || "N/A"}</li>
+        <li><strong>Date:</strong> ${visitDate}</li>
+        <li><strong>Time:</strong> ${visitTime}</li>
+      </ul>
 
-        <p>Please take action:</p>
-        <a href="${approveLink}" style="padding:10px 15px; background:#28a745; color:white; text-decoration:none; margin-right:10px; border-radius:5px;">✅ Approve</a>
-        <a href="${rejectLink}" style="padding:10px 15px; background:#dc3545; color:white; text-decoration:none; border-radius:5px;">❌ Reject</a>
-      </div>
-    `;
+      ${
+        visitor.photoUrl
+          ? `<p><img src="${visitor.photoUrl}" alt="Visitor Photo" width="150" style="border-radius:8px;border:1px solid #ccc;" /></p>`
+          : ""
+      }
 
-    const info = await transporter.sendMail({
-      from: process.env.FROM_EMAIL,
-      to: hostEmail,
-      subject: `New Visitor Request - ${visitor.name}`,
-      html,
-    });
+      <p>Please take action:</p>
+      <a href="${approveLink}" style="padding:10px 15px;background:#28a745;color:#fff;text-decoration:none;margin-right:10px;border-radius:5px;">✅ Approve</a>
+      <a href="${rejectLink}" style="padding:10px 15px;background:#dc3545;color:#fff;text-decoration:none;border-radius:5px;">❌ Reject</a>
+    </div>
+  `;
 
-    console.log("📨 Approval request sent to host:", info.messageId);
-    return info;
-  } catch (error) {
-    console.error("❌ Error sending approval request to host:", error.message);
-    throw error;
-  }
+  await sendEmail({
+    to: hostEmail,
+    subject: `New Visitor Request - ${visitor.name}`,
+    html,
+  });
 };
 
-
 /**
- * Send final APPROVAL mail to Visitor (with PDF pass)
+ * ✅ Send approval email to visitor (with PDF)
  */
 const sendApprovalMailToVisitor = async (visitor) => {
-  try {
-    const pdfBuffer = await generatePassPDF(visitor, process.env.FRONTEND_BASE_URL);
+  const pdfBuffer = await generatePassPDF(visitor, process.env.FRONTEND_BASE_URL);
 
-    const visitDate = new Date(visitor.createdAt).toLocaleDateString();
-    const visitTime = new Date(visitor.createdAt).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+  const html = `
+    <div style="font-family:Arial;padding:20px;">
+      <h2 style="color:#28a745;">✅ Approval Confirmed</h2>
+      <p>Hello <b>${visitor.name}</b>,</p>
+      <p>Your visitor request has been <b style="color:#28a745;">APPROVED</b>.</p>
 
-    const html = `
-      <div style="font-family: Arial, sans-serif; padding: 20px; border-radius: 8px; background: #f9f9f9; border: 1px solid #eee;">
-        <h2 style="color: #28a745;">✅ Approval Confirmed</h2>
-        <p>Hello <strong>${visitor.name}</strong>,</p>
-        <p>Your visitor request has been <span style="color: #28a745; font-weight: bold;">APPROVED</span>.</p>
+      <h3>Visit Details:</h3>
+      <ul>
+        <li><strong>Visitor ID:</strong> ${visitor.visitorCode}</li>
+        <li><strong>Name:</strong> ${visitor.name}</li>
+        <li><strong>Email:</strong> ${visitor.email}</li>
+        <li><strong>Phone:</strong> ${visitor.mobile}</li>
+        <li><strong>Organization:</strong> ${visitor.companyName || "N/A"}</li>
+        <li><strong>To Meet:</strong> ${visitor.toMeet}</li>
+        <li><strong>Gate Number:</strong> ${visitor.gateNumber || "N/A"}</li>
+      </ul>
 
-        <h3>📌 Visit Details</h3>
-        <ul>
-          <li><strong>Visitor ID:</strong> ${visitor.visitorCode}</li>
-          <li><strong>Name:</strong> ${visitor.name}</li>
-          <li><strong>Email:</strong> ${visitor.email}</li>
-          <li><strong>Phone:</strong> ${visitor.mobile}</li>
-          <li><strong>Aadhar:</strong> ${visitor.aadhar || "N/A"}</li>
-          <li><strong>Organization:</strong> ${visitor.companyName || "N/A"}</li>
-          <li><strong>Visitor Type:</strong> ${visitor.personType || "N/A"}</li>
-          <li><strong>Host Name:</strong> ${visitor.toMeet}</li>
-          <li><strong>Gate Number:</strong> ${visitor.gateNumber || "N/A"}</li>
-          <li><strong>Date:</strong> ${visitDate}</li>
-          <li><strong>Time:</strong> ${visitTime}</li>
-        </ul>
+      <p>Your visitor pass (PDF) is attached below. Please show it at the gate.</p>
+    </div>
+  `;
 
-        <p>Please find your attached visitor pass (PDF). Show it at the gate.</p>
-      </div>
-    `;
-
-    const info = await transporter.sendMail({
-      from: process.env.FROM_EMAIL,
-      to: visitor.email,
-      subject: "✅ Your Visitor Request Approved",
-      html,
-      attachments: [
-        {
-          filename: `visitor-pass-${visitor.visitorCode}.pdf`,
-          content: pdfBuffer,
-          contentType: "application/pdf",
-        },
-      ],
-    });
-
-    console.log("✅ Approval email sent to visitor:", info.messageId);
-    return info;
-  } catch (error) {
-    console.error("❌ Error sending approval mail to visitor:", error.message);
-    throw error;
-  }
+  await sendEmail({
+    to: visitor.email,
+    subject: "✅ Your Visitor Request Approved",
+    html,
+    attachments: [
+      {
+        filename: `visitor-pass-${visitor.visitorCode}.pdf`,
+        content: pdfBuffer,
+      },
+    ],
+  });
 };
 
-
 /**
- * Send REJECTION mail to Visitor
+ * ❌ Send rejection mail to visitor
  */
 const sendRejectionMailToVisitor = async (visitor) => {
-  try {
-    const html = `
-      <div style="font-family: Arial, sans-serif; padding: 20px;">
-        <h2 style="color: #dc3545;">❌ Visit Request Declined</h2>
-        <p>Hello <strong>${visitor.name}</strong>,</p>
-        <p>We regret to inform you that your visitor request has been declined.</p>
-        <p>Please contact reception for more details.</p>
-      </div>
-    `;
+  const html = `
+    <div style="font-family:Arial;padding:20px;">
+      <h2 style="color:#dc3545;">❌ Visit Request Declined</h2>
+      <p>Hello <b>${visitor.name}</b>,</p>
+      <p>We regret to inform you that your visitor request has been declined.</p>
+      <p>Please contact reception for more details.</p>
+    </div>
+  `;
 
-    const info = await transporter.sendMail({
-      from: process.env.FROM_EMAIL,
-      to: visitor.email,
-      subject: "❌ Visitor Request Declined",
-      html,
-    });
-
-    console.log("✅ Rejection email sent to visitor:", info.messageId);
-    return info;
-  } catch (error) {
-    console.error("❌ Error sending rejection email:", error.message);
-    throw error;
-  }
+  await sendEmail({
+    to: visitor.email,
+    subject: "❌ Visitor Request Declined",
+    html,
+  });
 };
 
 module.exports = {
   sendApprovalRequestToHost,
   sendApprovalMailToVisitor,
   sendRejectionMailToVisitor,
-  transporter,
 };
