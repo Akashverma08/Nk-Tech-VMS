@@ -56,7 +56,17 @@ function VisitorForm() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleOpenCamera = () => setIsCameraOpen(true);
+  const handleOpenCamera = async () => {
+  try {
+    // Ask for camera permission first
+    await navigator.mediaDevices.getUserMedia({ video: true });
+    setIsCameraOpen(true);
+  } catch (err) {
+    console.error("Camera permission error:", err);
+    alert("Please allow camera access to continue. Check your browser settings.");
+  }
+};
+
 
   const capturePhoto = async () => {
   const imageSrc = webcamRef.current?.getScreenshot();
