@@ -2,10 +2,14 @@ const mongoose = require('mongoose');
 
 const connectDB = async () => {
   try {
-    await mongoose.connect('mongodb://127.0.0.1:27017/visitorPassDB');
-    console.log('MongoDB Connected');
+    const mongoURI = process.env.MONGODB_URI; // ✅ use env variable
+    await mongoose.connect(mongoURI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+    console.log('✅ MongoDB Atlas Connected Successfully');
   } catch (error) {
-    console.error(error);
+    console.error('❌ MongoDB Connection Failed:', error.message);
     process.exit(1);
   }
 };
