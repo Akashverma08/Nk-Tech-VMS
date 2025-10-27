@@ -35,13 +35,13 @@ function VisitorForm() {
   const navigate = useNavigate();
 
   const personsList = [
-    { name: "GAURAV BHALOTIA", email: "akashverm0701@gmail.com" },
-    { name: "NAVEEN BHALOTIA", email: "vermadevil0401@gmail.com" },
-    { name: "ASHWINI KUMAR", email: "akashverm0701@gmail.com" },
-    { name: "SHAFIQULLAH", email: "vermadevil0401@gmail.com" },
-    { name: "SHAILENDRA SINGH", email: "akashverm0701@gmail.com" },
-    { name: "NIRAJ KISHORE", email: "vermadevil0401@gmail.com" },
-    { name: "Logiclens", email: "akashverm0701@gmail.com" },
+    { name: "Akash Verma", email: "akashverm0701@gmail.com" },
+    { name: "Shashwat Mani Tripathi", email: "shashwatmt2002@gmail.com" },
+    { name: "Anshika Jain", email: "akashverm0701@gmail.com" },
+    { name: "Nikita", email: "akashverma0401@gmail.com" },
+    { name: "Vandana verma", email: "akashverm0701@gmail.com" },
+    { name: "Aman Gupta", email: "akashverma0401@gmail.com" },
+    { name: "NK-TechUnion", email: "akashverm0701@gmail.com" },
   ];
 
   const personTypes = [

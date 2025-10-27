@@ -18,16 +18,20 @@ async function sendEmail({ to, subject, html, attachments }) {
     htmlContent: html,
   };
 
+  // ✅ FIXED: Ensure attachments are correctly Base64 encoded
   if (attachments?.length) {
     email.attachment = attachments.map((a) => ({
       name: a.filename,
-      content: a.content.toString("base64"),
+      content:
+        Buffer.isBuffer(a.content)
+          ? a.content.toString("base64")
+          : Buffer.from(a.content).toString("base64"),
     }));
   }
 
   try {
     const res = await brevoApi.sendTransacEmail(email);
-    console.log("✅ Email sent via Brevo:", res.messageId || res);
+    console.log("✅ Email sent via Brevo:", res?.body?.messageId || res?.body || res);
   } catch (err) {
     console.error("❌ Email send error:", err.response?.body || err);
   }
@@ -46,7 +50,6 @@ const sendApprovalRequestToHost = async (hostEmail, visitor) => {
     minute: "2-digit",
   });
 
-  // ✅ FULL visitor details email
   const html = `
     <div style="font-family:Arial;padding:20px;">
       <h2>👤 New Visitor Request</h2>
@@ -121,7 +124,7 @@ const sendApprovalMailToVisitor = async (visitor) => {
     attachments: [
       {
         filename: `visitor-pass-${visitor.visitorCode}.pdf`,
-        content: pdfBuffer,
+        content: pdfBuffer, // ✅ Will now be safely converted to Base64
       },
     ],
   });

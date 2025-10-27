@@ -5,7 +5,7 @@ const { uploadToS3 } = require("../utils/s3Upload");
 const { sendApprovalRequestToHost, sendApprovalMailToVisitor, sendRejectionMailToVisitor } = require("../utils/mailer");
 
 // Helper: generate visitor code
-const generateVisitorCode = () => `bebbco-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+const generateVisitorCode = () => `NK-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
 // -----------------------------
 // Register Visitor

@@ -81,7 +81,7 @@ const VisitorSchema = new mongoose.Schema(
 // 🔹 Auto-generate visitorCode before saving
 VisitorSchema.pre("save", function (next) {
   if (!this.visitorCode) {
-    this.visitorCode = "VIS-" + Date.now() + "-" + Math.floor(Math.random() * 1000);
+    this.visitorCode = "VMS-" + Date.now() + "-" + Math.floor(Math.random() * 1000);
   }
   next();
 });
