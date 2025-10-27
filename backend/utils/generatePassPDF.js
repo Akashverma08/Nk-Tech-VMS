@@ -20,8 +20,15 @@ async function generatePassPDF(visitorData, frontendBaseUrl) {
     const url = `${frontendBaseUrl.replace(/\/$/, "")}/qrcode/${visitorData._id}`;
     console.log("Opening page:", url);
 
+        // Try launching Puppeteer with dynamic executablePath
+    const executablePath =
+      process.env.CHROME_PATH ||
+      puppeteer.executablePath() || // ✅ use Puppeteer's bundled Chromium
+      null;
+
     browser = await puppeteer.launch({
       headless: true,
+      executablePath,
       args: [
         "--no-sandbox",
         "--disable-setuid-sandbox",
