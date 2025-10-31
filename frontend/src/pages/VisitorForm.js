@@ -37,7 +37,7 @@ function VisitorForm() {
   const personsList = [
     { name: "Akash Verma", email: "akashverm0701@gmail.com" },
     { name: "Shashwat Mani Tripathi", email: "shashwatmt2002@gmail.com" },
-    { name: "Anshika Jain", email: "akashverm0701@gmail.com" },
+    { name: "Anshika Jain", email: "jainanshika1404@gmail.com" },
     { name: "Nikita", email: "akashverma0401@gmail.com" },
     { name: "Vandana verma", email: "akashverm0701@gmail.com" },
     { name: "Aman Gupta", email: "akashverma0401@gmail.com" },
