@@ -4,10 +4,10 @@ const { generatePassPDF } = require("./generatePassPDF");
 
 // Initialize Brevo client
 const brevoApi = new Brevo.TransactionalEmailsApi();
-brevoApi.setApiKey(
-  Brevo.TransactionalEmailsApiApiKeys.apiKey,
-  process.env.BREVO_API_KEY
-);
+const defaultClient = Brevo.ApiClient.instance;
+const apiKey = defaultClient.authentications["api-key"];
+
+apiKey.apiKey = process.env.BREVO_API_KEY;
 
 // 📩 Helper function to send email
 async function sendEmail({ to, subject, html, attachments }) {
