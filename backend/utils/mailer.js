@@ -13,6 +13,10 @@ brevoApi.setApiKey(
 
 // 📩 Helper function to send email
 async function sendEmail({ to, subject, html, attachments }) {
+  console.log("📧 sendEmail called with:", { to, subject });
+  console.log("🔑 BREVO KEY:", process.env.BREVO_API_KEY);
+  console.log("📤 FROM EMAIL:", process.env.FROM_EMAIL);
+
   const email = {
     sender: { name: "NK Tech Union", email: process.env.FROM_EMAIL },
     to: [{ email: to }],
